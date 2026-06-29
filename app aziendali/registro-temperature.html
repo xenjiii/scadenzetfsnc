@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1C3A2B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Temperature TF">
+<title>Registro Temperature HACCP — TF s.n.c.</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --verde: #1C3A2B;
+    --verde-chiaro: #2d5a42;
+    --oro: #C8A84B;
+    --crema: #F7F2E8;
+    --crema-scura: #e8e0d0;
+    --bianco: #ffffff;
+    --grigio: #6b6b66;
+    --fumo: #2C2C2A;
+    --ok: #16a34a;
+    --warn: #ca8a04;
+    --exp: #dc2626;
+    --ok-bg: #f0fdf4;
+    --warn-bg: #fefce8;
+    --exp-bg: #fef2f2;
+    --blu: #2563eb;
+    --blu-bg: #eff6ff;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--crema);
+    color: var(--fumo);
+    line-height: 1.5;
+    padding-bottom: 80px;
+  }
+
+  .container { max-width: 720px; margin: 0 auto; }
+
+  /* HEADER */
+  .header {
+    background: var(--verde);
+    padding: 20px 18px 18px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .header-title { font-size: 18px; color: var(--crema); font-weight: 600; }
+  .header-title span { color: var(--oro); }
+  .header-date { font-size: 11px; color: rgba(247,242,232,0.6); }
+  .header-sub { font-size: 11px; color: rgba(247,242,232,0.5); }
+
+  /* TABS GIORNATA / STORICO */
+  .view-tabs { display: flex; gap: 0; background: var(--bianco); border-bottom: 1px solid var(--crema-scura); }
+  .view-tab {
+    flex: 1;
+    padding: 13px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--grigio);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .view-tab.on { color: var(--verde); border-bottom-color: var(--oro); }
+
+  /* TODAY SECTION */
+  .today-bar {
+    padding: 14px 18px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .today-label { font-size: 13px; font-weight: 600; color: var(--fumo); }
+  .today-sub { font-size: 11px; color: var(--grigio); }
+
+  /* TIME SLOT SELECTOR */
+  .slot-select { display: flex; gap: 8px; padding: 8px 18px 14px; }
+  .slot-btn {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--crema-scura);
+    border-radius: 8px;
+    background: var(--bianco);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--grigio);
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .slot-btn.on { background: var(--verde); color: var(--crema); border-color: var(--verde); }
+  .slot-btn .check { font-size: 13px; }
+
+  /* CELL LIST */
+  .cells { padding: 0 18px; }
+  .cell-card {
+    background: var(--bianco);
+    border: 1px solid var(--crema-scura);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+    border-left-width: 4px;
+    border-left-color: var(--crema-scura);
+  }
+  .cell-card.logged-ok { border-left-color: var(--ok); }
+  .cell-card.logged-alert { border-left-color: var(--exp); }
+
+  .cell-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .cell-icon {
+    width: 42px; height: 42px;
+    background: var(--blu-bg);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .cell-info { flex: 1; }
+  .cell-name { font-size: 14px; font-weight: 600; color: var(--fumo); }
+  .cell-range { font-size: 11px; color: var(--grigio); }
+  .cell-edit {
+    width: 30px; height: 30px;
+    border: 1px solid var(--crema-scura);
+    background: var(--bianco);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .cell-input-row { display: flex; align-items: center; gap: 10px; }
+  .temp-input-wrap { position: relative; flex: 1; }
+  .temp-input {
+    width: 100%;
+    padding: 12px 38px 12px 14px;
+    border: 1.5px solid var(--crema-scura);
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--fumo);
+    font-family: inherit;
+    outline: none;
+    text-align: center;
+  }
+  .temp-input:focus { border-color: var(--oro); }
+  .temp-unit {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: var(--grigio);
+    pointer-events: none;
+  }
+  .temp-save {
+    padding: 12px 18px;
+    background: var(--verde);
+    color: var(--crema);
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .temp-save:hover { background: var(--verde-chiaro); }
+
+  .cell-logged {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-top: 2px;
+  }
+  .cell-logged.ok { background: var(--ok-bg); }
+  .cell-logged.alert { background: var(--exp-bg); }
+  .logged-temp { font-size: 20px; font-weight: 700; }
+  .cell-logged.ok .logged-temp { color: var(--ok); }
+  .cell-logged.alert .logged-temp { color: var(--exp); }
+  .logged-status { font-size: 12px; font-weight: 500; }
+  .cell-logged.ok .logged-status { color: var(--ok); }
+  .cell-logged.alert .logged-status { color: var(--exp); }
+  .logged-redo {
+    font-size: 11px;
+    color: var(--grigio);
+    background: var(--bianco);
+    border: 1px solid var(--crema-scura);
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .alert-banner {
+    background: var(--exp-bg);
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    font-size: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin: 0 18px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* STORICO */
+  .history { padding: 14px 18px; }
+  .history-day {
+    background: var(--bianco);
+    border: 1px solid var(--crema-scura);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .history-day-head {
+    background: var(--crema);
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--verde);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .history-day-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .badge-ok { background: var(--ok-bg); color: var(--ok); }
+  .badge-alert { background: var(--exp-bg); color: var(--exp); }
+  .history-rows { padding: 6px 14px 10px; }
+  .history-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 0.5px solid var(--crema-scura);
+    font-size: 12px;
+  }
+  .history-row:last-child { border-bottom: none; }
+  .history-cell-name { color: var(--fumo); font-weight: 500; }
+  .history-temps { display: flex; gap: 16px; }
+  .history-temp { text-align: right; }
+  .history-temp-label { font-size: 9px; color: var(--grigio); text-transform: uppercase; }
+  .history-temp-val { font-size: 13px; font-weight: 600; }
+  .ht-ok { color: var(--ok); }
+  .ht-alert { color: var(--exp); }
+  .ht-empty { color: var(--crema-scura); }
+
+  .history-empty { text-align: center; padding: 40px 20px; color: var(--grigio); font-size: 13px; }
+
+  .export-btn {
+    margin: 8px 18px 0;
+    padding: 12px;
+    width: calc(100% - 36px);
+    background: var(--bianco);
+    border: 1px solid var(--verde);
+    color: var(--verde);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  /* FAB */
+  .fab {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--verde);
+    color: var(--crema);
+    border: none;
+    border-radius: 999px;
+    padding: 14px 24px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(28,58,43,0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 60;
+    font-family: inherit;
+  }
+  .fab:hover { background: var(--verde-chiaro); }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(28,58,43,0.5);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--bianco);
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    max-width: 720px;
+    padding: 22px 18px 28px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  @media (min-width: 600px) {
+    .modal-overlay { align-items: center; }
+    .modal { border-radius: 16px; max-width: 420px; }
+  }
+  .modal-title { font-size: 17px; font-weight: 600; color: var(--verde); margin-bottom: 18px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 500; color: var(--fumo); margin-bottom: 5px; }
+  .field input {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid var(--crema-scura);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+  }
+  .field input:focus { border-color: var(--oro); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .btn { flex: 1; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; }
+  .btn-cancel { background: var(--crema); color: var(--grigio); }
+  .btn-save { background: var(--verde); color: var(--crema); }
+  .btn-delete { background: var(--exp-bg); color: var(--exp); border: 1px solid #fecaca; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-top">
+      <div class="header-title">Registro <span>Temperature</span></div>
+      <div class="header-date" id="today"></div>
+    </div>
+    <div class="header-sub">TF s.n.c. · Controllo HACCP celle frigo</div>
+  </div>
+
+  <div class="view-tabs">
+    <div class="view-tab on" id="tab-today" onclick="switchView('today')">Oggi</div>
+    <div class="view-tab" id="tab-history" onclick="switchView('history')">Storico</div>
+  </div>
+
+  <!-- TODAY VIEW -->
+  <div id="view-today">
+    <div class="today-bar">
+      <div class="today-label" id="today-full"></div>
+      <div class="today-sub" id="today-progress"></div>
+    </div>
+
+    <div class="slot-select">
+      <button class="slot-btn on" id="slot-mattina" onclick="selectSlot('mattina')">
+        <span>🌅 Mattina</span><span class="check" id="check-mattina"></span>
+      </button>
+      <button class="slot-btn" id="slot-sera" onclick="selectSlot('sera')">
+        <span>🌙 Sera</span><span class="check" id="check-sera"></span>
+      </button>
+    </div>
+
+    <div id="alert-today"></div>
+
+    <div class="cells" id="cells"></div>
+  </div>
+
+  <!-- HISTORY VIEW -->
+  <div id="view-history" style="display:none;">
+    <div style="padding:8px 18px 0;">
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <select id="month-select" onchange="render()" style="flex:1;padding:11px 12px;border:1px solid var(--crema-scura);border-radius:8px;font-size:13px;font-family:inherit;background:var(--bianco);color:var(--fumo);outline:none;"></select>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="export-btn" style="margin:0;width:auto;flex:1;" onclick="exportPDF()">📄 Genera PDF mensile</button>
+        <button class="export-btn" style="margin:0;width:auto;flex:1;" onclick="exportCSV()">⬇️ Excel (CSV)</button>
+      </div>
+    </div>
+    <div class="history" id="history"></div>
+  </div>
+
+</div>
+
+<button class="fab" id="fab" onclick="openCellModal()">
+  <span style="font-size:16px;">+</span> Aggiungi cella
+</button>
+
+<!-- MODAL CELLA -->
+<div class="modal-overlay" id="cell-modal">
+  <div class="modal">
+    <div class="modal-title" id="cell-modal-title">Nuova cella</div>
+    <div class="field">
+      <label>Nome cella</label>
+      <input type="text" id="c-name" placeholder="es. Cella Latticini">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Temp. minima (°C)</label>
+        <input type="number" id="c-min" placeholder="0" step="0.1">
+      </div>
+      <div class="field">
+        <label>Temp. massima (°C)</label>
+        <input type="number" id="c-max" placeholder="4" step="0.1">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeCellModal()">Annulla</button>
+      <button class="btn btn-save" onclick="saveCell()">Salva</button>
+    </div>
+    <div id="cell-delete-row" style="margin-top:10px;display:none;">
+      <button class="btn btn-delete" style="width:100%;" onclick="deleteCell()">Elimina cella</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var STORAGE_KEY = 'tf_temperature_haccp_v2';
+  var data = null;
+  var curView = 'today';
+  var curSlot = 'mattina';
+  var editCellId = null;
+
+  var SEED = {
+    cells: [
+      { id:1, name:'Cella 1', min:0, max:4 },
+      { id:2, name:'Cella 2', min:0, max:4 },
+      { id:3, name:'Cella 3', min:0, max:4 }
+    ],
+    logs: {}
+    // logs format: { "2026-06-29": { mattina: {cellId: temp}, sera: {cellId: temp} } }
+  };
+
+  function load() {
+    try {
+      var saved = localStorage.getItem(STORAGE_KEY);
+      data = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(SEED));
+      if (!data.logs) data.logs = {};
+      if (!saved) save();
+    } catch(e) { data = JSON.parse(JSON.stringify(SEED)); }
+  }
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e){}
+  }
+
+  function todayKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function fmtDayLong(key) {
+    var d = new Date(key + 'T00:00:00');
+    return d.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  }
+  function fmtDayShort(key) {
+    var d = new Date(key + 'T00:00:00');
+    return d.toLocaleDateString('it-IT', {weekday:'short', day:'2-digit', month:'2-digit', year:'numeric'});
+  }
+
+  function getLog(dayKey, slot, cellId) {
+    if (data.logs[dayKey] && data.logs[dayKey][slot] && data.logs[dayKey][slot][cellId] !== undefined)
+      return data.logs[dayKey][slot][cellId];
+    return null;
+  }
+  function setLog(dayKey, slot, cellId, temp) {
+    if (!data.logs[dayKey]) data.logs[dayKey] = {};
+    if (!data.logs[dayKey][slot]) data.logs[dayKey][slot] = {};
+    data.logs[dayKey][slot][cellId] = temp;
+    save();
+  }
+  function clearLog(dayKey, slot, cellId) {
+    if (data.logs[dayKey] && data.logs[dayKey][slot]) {
+      delete data.logs[dayKey][slot][cellId];
+      save();
+    }
+  }
+
+  function isAlert(cell, temp) {
+    return temp < cell.min || temp > cell.max;
+  }
+
+  function switchView(v) {
+    curView = v;
+    document.getElementById('tab-today').classList.toggle('on', v==='today');
+    document.getElementById('tab-history').classList.toggle('on', v==='history');
+    document.getElementById('view-today').style.display = v==='today' ? 'block' : 'none';
+    document.getElementById('view-history').style.display = v==='history' ? 'block' : 'none';
+    document.getElementById('fab').style.display = v==='today' ? 'flex' : 'none';
+    render();
+  }
+
+  function selectSlot(slot) {
+    curSlot = slot;
+    document.getElementById('slot-mattina').classList.toggle('on', slot==='mattina');
+    document.getElementById('slot-sera').classList.toggle('on', slot==='sera');
+    render();
+  }
+
+  function render() {
+    var now = new Date();
+    document.getElementById('today').textContent = now.toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric'});
+
+    if (curView === 'today') renderToday();
+    else renderHistory();
+  }
+
+  function renderToday() {
+    var dayKey = todayKey();
+    document.getElementById('today-full').textContent = fmtDayLong(dayKey).charAt(0).toUpperCase() + fmtDayLong(dayKey).slice(1);
+
+    // Slot checks
+    ['mattina','sera'].forEach(function(slot){
+      var allLogged = data.cells.length > 0 && data.cells.every(function(c){ return getLog(dayKey, slot, c.id) !== null; });
+      document.getElementById('check-' + slot).textContent = allLogged ? '✓' : '';
+    });
+
+    // Progress
+    var logged = data.cells.filter(function(c){ return getLog(dayKey, curSlot, c.id) !== null; }).length;
+    document.getElementById('today-progress').textContent = logged + '/' + data.cells.length + ' registrate (' + curSlot + ')';
+
+    // Alert banner
+    var alerts = data.cells.filter(function(c){
+      var t = getLog(dayKey, curSlot, c.id);
+      return t !== null && isAlert(c, t);
+    });
+    var alertEl = document.getElementById('alert-today');
+    if (alerts.length > 0) {
+      alertEl.innerHTML = '<div class="alert-banner"><span>🌡️</span><span><strong>' + alerts.length + ' cella/e fuori range!</strong> Verifica: ' + alerts.map(function(c){return c.name;}).join(', ') + '</span></div>';
+    } else {
+      alertEl.innerHTML = '';
+    }
+
+    // Cells
+    var cellsEl = document.getElementById('cells');
+    if (data.cells.length === 0) {
+      cellsEl.innerHTML = '<div style="text-align:center;padding:30px;color:var(--grigio);font-size:13px;">Nessuna cella configurata.<br>Aggiungine una col pulsante in basso.</div>';
+      return;
+    }
+
+    cellsEl.innerHTML = data.cells.map(function(c){
+      var temp = getLog(dayKey, curSlot, c.id);
+      var logged = temp !== null;
+      var alert = logged && isAlert(c, temp);
+      var cardClass = logged ? (alert ? 'logged-alert' : 'logged-ok') : '';
+
+      var html = '<div class="cell-card ' + cardClass + '">' +
+        '<div class="cell-head">' +
+          '<div class="cell-icon">❄️</div>' +
+          '<div class="cell-info">' +
+            '<div class="cell-name">' + c.name + '</div>' +
+            '<div class="cell-range">Range: ' + c.min + '°C / ' + c.max + '°C</div>' +
+          '</div>' +
+          '<button class="cell-edit" onclick="openCellModal(' + c.id + ')" title="Modifica">✏️</button>' +
+        '</div>';
+
+      if (logged) {
+        html += '<div class="cell-logged ' + (alert?'alert':'ok') + '">' +
+          '<div class="logged-temp">' + temp + '°C</div>' +
+          '<div class="logged-status">' + (alert ? '⚠️ Fuori range!' : '✓ Nei limiti') + '</div>' +
+          '<button class="logged-redo" onclick="redoLog(' + c.id + ')">Modifica</button>' +
+        '</div>';
+      } else {
+        html += '<div class="cell-input-row">' +
+          '<div class="temp-input-wrap">' +
+            '<input type="number" class="temp-input" id="temp-' + c.id + '" placeholder="--" step="0.1" inputmode="decimal">' +
+            '<span class="temp-unit">°C</span>' +
+          '</div>' +
+          '<button class="temp-save" onclick="saveTemp(' + c.id + ')">Registra</button>' +
+        '</div>';
+      }
+      html += '</div>';
+      return html;
+    }).join('');
+  }
+
+  function saveTemp(cellId) {
+    var input = document.getElementById('temp-' + cellId);
+    var val = parseFloat(input.value.replace(',', '.'));
+    if (isNaN(val)) { alert('Inserisci una temperatura valida'); return; }
+    setLog(todayKey(), curSlot, cellId, val);
+    render();
+  }
+
+  function redoLog(cellId) {
+    clearLog(todayKey(), curSlot, cellId);
+    render();
+  }
+
+  function getMonths() {
+    var months = {};
+    Object.keys(data.logs).forEach(function(k){ months[k.substring(0,7)] = true; });
+    return Object.keys(months).sort().reverse();
+  }
+
+  function renderHistory() {
+    var histEl = document.getElementById('history');
+    var allDays = Object.keys(data.logs).sort().reverse();
+
+    // Populate month selector
+    var months = getMonths();
+    var sel = document.getElementById('month-select');
+    if (months.length === 0) {
+      sel.innerHTML = '<option>Nessun dato</option>';
+    } else {
+      var curVal = sel.value;
+      sel.innerHTML = months.map(function(m){
+        var d = new Date(m + '-01T00:00:00');
+        var label = d.toLocaleDateString('it-IT', {month:'long', year:'numeric'});
+        label = label.charAt(0).toUpperCase() + label.slice(1);
+        return '<option value="' + m + '">' + label + '</option>';
+      }).join('');
+      if (curVal && months.indexOf(curVal) >= 0) sel.value = curVal;
+    }
+    var selMonth = sel.value || (months[0] || '');
+
+    var days = allDays.filter(function(k){ return k.substring(0,7) === selMonth; });
+    if (days.length === 0) {
+      histEl.innerHTML = '<div class="history-empty">Nessuna registrazione ancora.<br>Le temperature registrate appariranno qui.</div>';
+      return;
+    }
+
+    histEl.innerHTML = days.map(function(dayKey){
+      var dayLog = data.logs[dayKey];
+      // Check if any alert this day
+      var hasAlert = false;
+      data.cells.forEach(function(c){
+        ['mattina','sera'].forEach(function(slot){
+          if (dayLog[slot] && dayLog[slot][c.id] !== undefined && isAlert(c, dayLog[slot][c.id])) hasAlert = true;
+        });
+      });
+
+      var rows = data.cells.map(function(c){
+        var tm = (dayLog.mattina && dayLog.mattina[c.id] !== undefined) ? dayLog.mattina[c.id] : null;
+        var ts = (dayLog.sera && dayLog.sera[c.id] !== undefined) ? dayLog.sera[c.id] : null;
+        function cls(t){ if (t===null) return 'ht-empty'; return isAlert(c,t)?'ht-alert':'ht-ok'; }
+        function val(t){ return t===null ? '–' : t + '°'; }
+        return '<div class="history-row">' +
+          '<div class="history-cell-name">' + c.name + '</div>' +
+          '<div class="history-temps">' +
+            '<div class="history-temp"><div class="history-temp-label">Mattina</div><div class="history-temp-val ' + cls(tm) + '">' + val(tm) + '</div></div>' +
+            '<div class="history-temp"><div class="history-temp-label">Sera</div><div class="history-temp-val ' + cls(ts) + '">' + val(ts) + '</div></div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      return '<div class="history-day">' +
+        '<div class="history-day-head">' +
+          '<span>' + (fmtDayShort(dayKey).charAt(0).toUpperCase() + fmtDayShort(dayKey).slice(1)) + '</span>' +
+          '<span class="history-day-badge ' + (hasAlert?'badge-alert':'badge-ok') + '">' + (hasAlert?'⚠️ Anomalia':'✓ Regolare') + '</span>' +
+        '</div>' +
+        '<div class="history-rows">' + rows + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function exportCSV() {
+    var days = Object.keys(data.logs).sort();
+    if (days.length === 0) { alert('Nessun dato da esportare'); return; }
+
+    var rows = [['Data','Cella','Range','Mattina','Sera','Esito']];
+    days.forEach(function(dayKey){
+      var dayLog = data.logs[dayKey];
+      data.cells.forEach(function(c){
+        var tm = (dayLog.mattina && dayLog.mattina[c.id] !== undefined) ? dayLog.mattina[c.id] : '';
+        var ts = (dayLog.sera && dayLog.sera[c.id] !== undefined) ? dayLog.sera[c.id] : '';
+        var alert = (tm !== '' && isAlert(c,tm)) || (ts !== '' && isAlert(c,ts));
+        rows.push([dayKey, c.name, c.min+'/'+c.max+'C', tm!==''?tm+'C':'', ts!==''?ts+'C':'', alert?'ANOMALIA':'Regolare']);
+      });
+    });
+
+    var csv = rows.map(function(r){ return r.join(';'); }).join('\\n');
+    var blob = new Blob(['\\ufeff' + csv], {type:'text/csv;charset=utf-8;'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'registro-temperature-TF.csv';
+    a.click();
+  }
+
+  function exportPDF() {
+    var sel = document.getElementById('month-select');
+    var selMonth = sel.value;
+    if (!selMonth) { alert('Nessun mese selezionato'); return; }
+
+    var days = Object.keys(data.logs).filter(function(k){ return k.substring(0,7) === selMonth; }).sort();
+    if (days.length === 0) { alert('Nessun dato per questo mese'); return; }
+
+    var d = new Date(selMonth + '-01T00:00:00');
+    var monthLabel = d.toLocaleDateString('it-IT', {month:'long', year:'numeric'});
+    monthLabel = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+
+    // Build table rows
+    var headerCells = data.cells.map(function(c){ return '<th colspan="2">' + c.name + '<br><span style=\"font-weight:400;font-size:9px;\">' + c.min + '/' + c.max + '°C</span></th>'; }).join('');
+    var subHeader = data.cells.map(function(){ return '<th>Matt.</th><th>Sera</th>'; }).join('');
+
+    var bodyRows = days.map(function(dayKey){
+      var dayLog = data.logs[dayKey];
+      var dd = new Date(dayKey + 'T00:00:00');
+      var dateLabel = dd.toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit'});
+      var weekday = dd.toLocaleDateString('it-IT', {weekday:'short'});
+
+      var cells = data.cells.map(function(c){
+        var tm = (dayLog.mattina && dayLog.mattina[c.id] !== undefined) ? dayLog.mattina[c.id] : null;
+        var ts = (dayLog.sera && dayLog.sera[c.id] !== undefined) ? dayLog.sera[c.id] : null;
+        function fmt(t){
+          if (t === null) return '<td style=\"color:#ccc;\">–</td>';
+          var alert = isAlert(c, t);
+          return '<td style=\"' + (alert?'color:#dc2626;font-weight:700;background:#fef2f2;':'') + '\">' + t + '°</td>';
+        }
+        return fmt(tm) + fmt(ts);
+      }).join('');
+
+      return '<tr><td style=\"font-weight:600;\">' + weekday + ' ' + dateLabel + '</td>' + cells + '</tr>';
+    }).join('');
+
+    var html = '<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Registro Temperature ' + monthLabel + '</title>' +
+      '<style>' +
+      '@media print { @page { size: A4 landscape; margin: 12mm; } * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }' +
+      'body { font-family: Arial, sans-serif; color: #1a1a1a; padding: 20px; }' +
+      '.head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1C3A2B; padding-bottom: 12px; margin-bottom: 16px; }' +
+      '.logo { font-size: 22px; font-weight: 700; color: #1C3A2B; }' +
+      '.logo span { color: #C8A84B; }' +
+      '.company { font-size: 11px; color: #666; margin-top: 2px; }' +
+      '.doc-title { text-align: right; }' +
+      '.doc-title h1 { font-size: 16px; color: #1C3A2B; }' +
+      '.doc-title p { font-size: 12px; color: #666; }' +
+      'table { width: 100%; border-collapse: collapse; font-size: 11px; }' +
+      'th, td { border: 1px solid #ccc; padding: 5px 6px; text-align: center; }' +
+      'thead th { background: #1C3A2B; color: #fff; font-size: 10px; }' +
+      'tbody td:first-child { background: #f5f0e8; text-align: left; }' +
+      '.legend { font-size: 10px; color: #666; margin-top: 12px; }' +
+      '.sign { margin-top: 30px; display: flex; justify-content: space-between; }' +
+      '.sign-box { width: 45%; }' +
+      '.sign-line { border-top: 1px solid #333; margin-top: 36px; padding-top: 4px; font-size: 11px; color: #666; text-align: center; }' +
+      '.footer { margin-top: 20px; font-size: 9px; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 8px; }' +
+      '</style></head><body>' +
+      '<div class=\"head\">' +
+        '<div><div class=\"logo\">TF <span>s.n.c.</span></div><div class=\"company\">Distribuzioni Alimentari · Misilmeri (PA) · P.IVA 05793090829</div></div>' +
+        '<div class=\"doc-title\"><h1>Registro Temperature HACCP</h1><p>' + monthLabel + '</p></div>' +
+      '</div>' +
+      '<table><thead><tr><th rowspan=\"2\">Data</th>' + headerCells + '</tr><tr>' + subHeader + '</tr></thead>' +
+      '<tbody>' + bodyRows + '</tbody></table>' +
+      '<div class=\"legend\">Le temperature evidenziate in <strong style=\"color:#dc2626;\">rosso</strong> indicano valori fuori dal range previsto. Range prodotti freschi: 0°C / +4°C.</div>' +
+      '<div class=\"sign\">' +
+        '<div class=\"sign-box\"><div class=\"sign-line\">Data</div></div>' +
+        '<div class=\"sign-box\"><div class=\"sign-line\">Firma del Responsabile HACCP</div></div>' +
+      '</div>' +
+      '<div class=\"footer\">Documento generato da Registro Temperature TF · Conservare ai fini del piano di autocontrollo HACCP</div>' +
+      '</body></html>';
+
+    var win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    setTimeout(function(){ win.print(); }, 400);
+  }
+
+  function openCellModal(id) {
+    editCellId = id || null;
+    if (editCellId) {
+      var c = data.cells.find(function(x){ return x.id === editCellId; });
+      document.getElementById('cell-modal-title').textContent = 'Modifica cella';
+      document.getElementById('c-name').value = c.name;
+      document.getElementById('c-min').value = c.min;
+      document.getElementById('c-max').value = c.max;
+      document.getElementById('cell-delete-row').style.display = 'block';
+    } else {
+      document.getElementById('cell-modal-title').textContent = 'Nuova cella';
+      document.getElementById('c-name').value = '';
+      document.getElementById('c-min').value = '0';
+      document.getElementById('c-max').value = '4';
+      document.getElementById('cell-delete-row').style.display = 'none';
+    }
+    document.getElementById('cell-modal').classList.add('show');
+  }
+  function closeCellModal() {
+    document.getElementById('cell-modal').classList.remove('show');
+    editCellId = null;
+  }
+  function saveCell() {
+    var name = document.getElementById('c-name').value.trim();
+    var min = parseFloat(document.getElementById('c-min').value);
+    var max = parseFloat(document.getElementById('c-max').value);
+    if (!name) { alert('Inserisci il nome della cella'); return; }
+    if (isNaN(min) || isNaN(max)) { alert('Inserisci i limiti di temperatura'); return; }
+    if (min >= max) { alert('La temperatura minima deve essere inferiore alla massima'); return; }
+
+    if (editCellId) {
+      var c = data.cells.find(function(x){ return x.id === editCellId; });
+      c.name = name; c.min = min; c.max = max;
+    } else {
+      var newId = data.cells.length ? Math.max.apply(null, data.cells.map(function(x){return x.id;})) + 1 : 1;
+      data.cells.push({id:newId, name:name, min:min, max:max});
+    }
+    save(); closeCellModal(); render();
+  }
+  function deleteCell() {
+    if (!editCellId) return;
+    if (confirm('Eliminare questa cella? Lo storico delle temperature registrate resterà ma non sarà più visibile.')) {
+      data.cells = data.cells.filter(function(x){ return x.id !== editCellId; });
+      save(); closeCellModal(); render();
+    }
+  }
+
+  document.getElementById('cell-modal').addEventListener('click', function(e){
+    if (e.target === this) closeCellModal();
+  });
+
+  load();
+  render();
+</script>
+</body>
+</html>
